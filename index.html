@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Stack Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        canvas { display: block; }
+        #score { 
+            position: absolute; 
+            top: 10%;
+            left: 50%; 
+            transform: translateX(-50%); 
+            font-size: 150px; 
+            font-weight: bold; 
+            color: white; 
+            text-shadow: 2px 2px 4px black;
+        }
+        #high-score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 50px;
+            font-weight: bold;
+            color: white; 
+            text-shadow: 2px 2px 4px black;
+        }
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: bold;
+            color: whitesmoke;
+            text-shadow: 2px 2px 4px black;
+            background: rgba(254, 180, 190, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
+            cursor: pointer;
+        }
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 2;
+        }
+
+        #logo {
+            width: 100px;
+            margin-bottom: 10px;
+            z-index: 2;
+        }
+
+        #game-title {
+            color: white;
+            font-size: 32px;
+            margin-bottom: 20px;
+            z-index: 2;
+        }
+
+        #play-button, #twitter-button {
+            font-size: 20px;
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            z-index: 2;
+        }
+
+        #play-button {
+            background-color: green;
+            color: white;
+            z-index: 2;
+        }
+
+        #twitter-button {
+            background-color: blue;
+            color: white;
+            z-index: 2;
+        }
+        #menu-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('background.png') center/cover no-repeat;
+            z-index: 1;
+        }
+        #game-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('background.png') center/cover no-repeat;
+            z-index: 0;
+        }
+        #tap-to-place {
+            position: absolute;
+            top: 24%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px black;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #claim-button {
+            font-size: 20px;
+            padding: 10px 20px;
+            margin-top: 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: orange;
+            color: white;
+            font-weight: bold;
+            display: block;
+            margin: auto;
+        }
+        #star-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: gold;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <img src="logo.png" id="logo" alt="Game Logo">
+        <h1 id="game-title">Tower Stack</h1>
+        <p id="star-count">Your stars: 0⭐</p>
+        <button id="play-button">Play</button>
+        <button id="twitter-button" onclick="window.open('https://x.com/goodwaitik', '_blank')">Twitter</button>
+    </div>
+    <div id="menu-bg"></div>
+    <div id="score">0</div>
+    <div id="tap-to-place">Tap to place the block</div>
+    <div id="high-score">Рекорд: 0</div>
+    <div id="game-over">
+        Game Over!<br>
+        <p id="star-message"></p>
+        <button id="claim-button" onclick="location.reload()">Claim and back to main menu</button>
+    </div>
+    <audio id="perfect-sound">
+        <source src="perfect.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="bg-music" loop>
+        <source src="MorgenshternPablo.mp3" type="audio/mpeg">
+    </audio>    
+    <audio id="click-sound">
+        <source src="click.mp3" type="audio/mpeg">
+    </audio>
+    
+    <script>
+        let scene, camera, renderer, world;
+        let blocks = [], blockSize = { width: 5, height: 0.7, depth: 5 }; 
+        let lastBlock, fallingBlock, speed = 0.15, direction = 1;
+        let score = 0, highScore = localStorage.getItem("highScore") || 0;
+        let gameOver = false;
+        document.getElementById("bg-music").volume = 0.03;
+        document.getElementById("click-sound").volume = 0.1;
+        document.getElementById("perfect-sound").volume = 0.07;
+        document.getElementById("high-score").innerText = `Record: ${highScore}`;
+        document.getElementById("star-count").innerText = `Your stars: ${localStorage.getItem("totalStars") || 0}⭐`;
+        const textures = [
+            'texture1.png',
+            'texture2.png',
+            'texture3.png',
+            'texture4.png',
+            'texture5.png',
+            'texture6.png',
+            'texture7.png',
+            'texture8.png',
+            'texture9.png',
+            'texture10.png'
+        ];
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 10, 15);
+            camera.lookAt(0, 5, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            world = new CANNON.World();
+            world.gravity.set(0, -9.8, 0);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+
+            addBaseBlock();
+            spawnFallingBlock();
+
+            window.addEventListener("click", () => { if (!gameOver) placeBlock(); });
+            animate();
+            document.getElementById("bg-music").play().catch(error => {
+                console.log("Авто-воспроизведение запрещено браузером. Включите музыку вручную.");
+            });
+        }
+
+        function addBaseBlock() {
+            lastBlock = createBlock(0, 0, 0, blockSize.width);
+            blocks.push(lastBlock);
+        }
+
+        function spawnFallingBlock() {
+            let y = lastBlock.mesh.position.y + blockSize.height;
+            let color = Math.random() * 0xffffff;
+            fallingBlock = createBlock(10, y, 0, lastBlock.width, color);
+            fallingBlock.body.mass = 1;
+            world.addBody(fallingBlock.body);
+        }
+
+        function createBlock(x, y, z, width) {
+            let geometry = new THREE.BoxGeometry(width, blockSize.height, blockSize.depth);
+
+            // Выбираем случайную текстуру
+            let textureLoader = new THREE.TextureLoader();
+            let randomTexture = textures[Math.floor(Math.random() * textures.length)];
+            let texture = textureLoader.load(randomTexture);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping; // Позволяет текстуре корректно отображаться
+
+            let material = new THREE.MeshStandardMaterial({ map: texture });
+
+            let mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+
+            let shape = new CANNON.Box(new CANNON.Vec3(width / 2, blockSize.height / 2, blockSize.depth / 2));
+            let body = new CANNON.Body({ mass: 0 });
+            body.addShape(shape);
+            body.position.set(x, y, z);
+            world.addBody(body);
+
+            return { mesh, body, width, x };
+        }
+
+        function placeBlock() {
+            let offset = fallingBlock.mesh.position.x - lastBlock.mesh.position.x;
+            let overlap = lastBlock.width - Math.abs(offset);
+
+            if (overlap > 0) {
+                let perfectHit = Math.abs(offset) < 0.1; // Идеальное попадание (разница < 0.1)
+
+                if (perfectHit) {
+                    score += 2; // +2 очка за идеальный блок
+                    document.getElementById("perfect-sound").play(); // Идеальный звук
+                } else {
+                    score++; // Обычное попадание +1 очко
+                    document.getElementById("click-sound").play(); // Обычный звук
+                }
+
+                document.getElementById("score").innerText = `${score}`;
+
+                let newWidth = overlap;
+                let newX = lastBlock.mesh.position.x + (offset > 0 ? (lastBlock.width - newWidth) / 2 : -(lastBlock.width - newWidth) / 2);
+
+                scene.remove(fallingBlock.mesh);
+                world.removeBody(fallingBlock.body);
+
+                // ❗ Создаем новый блок и сохраняем текстуру предыдущего
+                lastBlock = createBlock(newX, lastBlock.mesh.position.y + blockSize.height, 0, newWidth);
+                lastBlock.mesh.material.map = fallingBlock.mesh.material.map; // Переносим текстуру
+                lastBlock.mesh.material.needsUpdate = true;
+
+                blocks.push(lastBlock);
+
+                let choppedWidth = Math.abs(offset);
+                if (choppedWidth > 0.1) {
+                    let choppedX = offset > 0 ? newX + newWidth / 2 + choppedWidth / 2 : newX - newWidth / 2 - choppedWidth / 2;
+                    createFallingBlock(choppedX, lastBlock.mesh.position.y, 0, choppedWidth);
+                }
+
+                moveCameraUp();
+                spawnFallingBlock();
+            } else {
+                endGame();
+            }
+        }
+
+
+        function createFallingBlock(x, y, z, width, color) {
+            let geometry = new THREE.BoxGeometry(width, blockSize.height, blockSize.depth);
+            let material = new THREE.MeshStandardMaterial({ color });
+            let mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+
+            let shape = new CANNON.Box(new CANNON.Vec3(width / 2, blockSize.height / 2, blockSize.depth / 2));
+            let body = new CANNON.Body({ mass: 1 });
+            body.addShape(shape);
+            body.position.set(x, y, z);
+            body.velocity.set(0, -5, 0);
+
+            let fallingPart = { mesh, body };
+            blocks.push(fallingPart);
+            world.addBody(fallingPart.body);
+        }
+
+        function moveCameraUp() {
+            let moveAmount = blockSize.height * 0.7;
+
+            camera.position.y += moveAmount;
+            camera.lookAt(0, lastBlock.mesh.position.y, 0);
+        }
+
+        function endGame() {
+            gameOver = true;
+            document.getElementById("game-over").style.display = "block";
+
+            let stars = Math.floor(score / 5); // Количество звезд за игру
+            document.getElementById("star-message").innerText = `Вы заработали ${stars}⭐!`;
+
+            // Получаем текущие звезды и добавляем новые
+            let totalStars = parseInt(localStorage.getItem("totalStars")) || 0;
+            totalStars += stars; 
+            localStorage.setItem("totalStars", totalStars); // Сохраняем в хранилище
+
+            // Обновляем текст в главном меню
+            document.getElementById("star-count").innerText = `Your stars: ${totalStars}⭐`;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("highScore", highScore);
+                document.getElementById("high-score").innerText = `Рекорд: ${highScore}`;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            fallingBlock.mesh.position.x += speed * direction;
+            if (Math.abs(fallingBlock.mesh.position.x) > 10) direction *= -1;
+            fallingBlock.body.position.x = fallingBlock.mesh.position.x;
+
+            world.step(1 / 60);
+            blocks.forEach(block => block.mesh.position.copy(block.body.position));
+            renderer.render(scene, camera);
+        }
+
+        document.getElementById("play-button").addEventListener("click", function() {
+            document.getElementById("menu").style.display = "none";
+            document.getElementById("menu-bg").style.display = "none";
+            setTimeout(init, 100); // Даем время перед стартом
+        });
+    </script>
+</body>
+</html>
