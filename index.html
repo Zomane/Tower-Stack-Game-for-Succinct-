@@ -97,7 +97,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('background.png') center/cover no-repeat;
+            background: url('background.webp') center/cover no-repeat;
             z-index: 1;
         }
         #game-bg {
@@ -106,7 +106,6 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('background.png') center/cover no-repeat;
             z-index: 0;
         }
         #tap-to-place {
@@ -144,7 +143,7 @@
 </head>
 <body>
     <div id="menu">
-        <img src="logo.png" id="logo" alt="Game Logo">
+        <img src="logo.webp" id="logo" alt="Game Logo">
         <h1 id="game-title">Tower Stack</h1>
         <p id="star-count">Your stars: 0⭐</p>
         <button id="play-button">Play</button>
@@ -181,17 +180,18 @@
         document.getElementById("high-score").innerText = `Record: ${highScore}`;
         document.getElementById("star-count").innerText = `Your stars: ${localStorage.getItem("totalStars") || 0}⭐`;
         const textures = [
-            'texture1.png',
-            'texture2.png',
-            'texture3.png',
-            'texture4.png',
-            'texture5.png',
-            'texture6.png',
-            'texture7.png',
-            'texture8.png',
-            'texture9.png',
-            'texture10.png'
+            'texture1.webp',
+            'texture2.webp',
+            'texture3.webp',
+            'texture4.webp',
+            'texture5.webp',
+            'texture6.webp',
+            'texture7.webp',
+            'texture8.webp',
+            'texture9.webp',
+            'texture10.webp'
         ];
+
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
