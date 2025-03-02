@@ -332,7 +332,7 @@
             document.getElementById("game-over").style.display = "block";
 
             let stars = Math.floor(score / 5); // Количество звезд за игру
-            document.getElementById("star-message").innerText = `Вы заработали ${stars}⭐!`;
+            document.getElementById("star-message").innerText = `You earned ${stars}⭐!`;
 
             // Получаем текущие звезды и добавляем новые
             let totalStars = parseInt(localStorage.getItem("totalStars")) || 0;
@@ -345,7 +345,7 @@
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem("highScore", highScore);
-                document.getElementById("high-score").innerText = `Рекорд: ${highScore}`;
+                document.getElementById("high-score").innerText = `Record: ${highScore}`;
             }
         }
 
